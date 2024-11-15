@@ -10,6 +10,9 @@ from langgraph.prebuilt import create_react_agent
 # Import CDP Agentkit Langchain Extension.
 from cdp_langchain.agent_toolkits import CdpToolkit
 from cdp_langchain.utils import CdpAgentkitWrapper
+from cdp_langchain.tools import CdpTool
+
+from cow_trade_action import COW_TRADE_PROMPT, CoWTradeInput, cow_trade
 
 # Configure a file to persist the agent's CDP MPC Wallet Data.
 wallet_data_file = "wallet_data.txt"
@@ -43,6 +46,17 @@ def initialize_agent():
     cdp_toolkit = CdpToolkit.from_cdp_agentkit_wrapper(agentkit)
     tools = cdp_toolkit.get_tools()
 
+    # Define a new tool for signing messages.
+    cowTradeTool = CdpTool(
+        name="cow_trade",
+        description=COW_TRADE_PROMPT,
+        cdp_agentkit_wrapper=agentkit,
+        args_schema=CoWTradeInput,
+        func=cow_trade,
+    )
+
+    tools.append(cowTradeTool)
+
     # Store buffered conversation history in memory.
     memory = MemorySaver()
     config = {"configurable": {"thread_id": "CDP Agentkit Chatbot Example!"}}
@@ -52,7 +66,7 @@ def initialize_agent():
         llm,
         tools=tools,
         checkpointer=memory,
-        state_modifier="You are a helpful agent that can interact onchain using the Coinbase Developer Platform Agentkit. You are empowered to interact onchain using your tools. If you ever need funds, you can request them from the faucet if you are on network ID `base-sepolia`. If not, you can provide your wallet details and request funds from the user. If someone asks you to do something you can't do with your currently available tools, you must say so, and encourage them to implement it themselves using the CDP SDK + Agentkit, recommend they go to docs.cdp.coinbase.com for more informaton. Be concise and helpful with your responses. Refrain from restating your tools' descriptions unless it is explicitly requested.",
+        state_modifier="You are a helpful agent that can interact onchain using the Coinbase Developer Platform Agentkit. You are empowered to interact onchain using your tools. If not, you can provide your wallet details and request funds from the user. You are only allowed to operate on Arbitrum Mainnet (e.g. `arbitrum-mainnet`). If someone asks you to do something you can't do with your currently available tools, you must say so, and encourage them to implement it themselves using the CDP SDK + Agentkit, recommend they go to docs.cdp.coinbase.com for more informaton. Be concise and helpful with your responses. Refrain from restating your tools' descriptions unless it is explicitly requested.",
     ), config
 
 
